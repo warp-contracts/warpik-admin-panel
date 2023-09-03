@@ -17,11 +17,6 @@ const App: Component = () => {
 
   createEffect(async () => {
     const warp = WarpFactory.forMainnet();
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    const walletId = accounts[0];
-    if (walletId) {
-      setWalletId(walletId);
-    }
     setWarp(warp);
   });
 

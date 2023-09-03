@@ -1,7 +1,7 @@
 import { Box, Button, FormControl, Stack, TextField, useTheme } from '@suid/material';
 import { Component, Show, createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { Warp } from 'warp-contracts';
+import { LoggerFactory, Warp } from 'warp-contracts';
 
 const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
   const [form, setForm] = createStore({
@@ -94,16 +94,17 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
   };
 
   const handleSubmit = async (e: Event) => {
+    LoggerFactory.INST.logLevel('info');
     e.preventDefault();
     setSubmitting(true);
+    if (Object.keys(props.wallet).length == 0) {
+      return;
+    }
     const valid = checkValid();
     if (!valid) {
       return;
     }
     const contract = props.warp.contract(form.contractId.value);
-    const test = { function: form.function.value, ...JSON.parse('{' + form.input.value + '}') };
-    console.log(test);
-
     try {
       await contract
         .connect(props.wallet)
@@ -112,7 +113,8 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
           { strict: true }
         );
     } catch (e: any) {
-      setInteractionError(e.message);
+      setInteractionError(`${e.message}`);
+      return;
     }
   };
 
@@ -178,15 +180,17 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
           </Button>
         </Stack>
         <Stack direction='row' justifyContent='flex-end'>
-          <Show
-            when={submitting() && Object.keys(props.wallet).length == 0}
-            fallback={<ErrorMessage error=' '></ErrorMessage>}
-          >
-            <ErrorMessage error='Please connect your wallet'></ErrorMessage>
-          </Show>
-          <Show when={interactionError()} fallback={<ErrorMessage error=' '></ErrorMessage>}>
-            <ErrorMessage error={interactionError()}></ErrorMessage>
-          </Show>
+          <Stack direction='column'>
+            <Show
+              when={submitting() && Object.keys(props.wallet).length == 0}
+              fallback={<ErrorMessage error=' '></ErrorMessage>}
+            >
+              <ErrorMessage error='Please connect your wallet'></ErrorMessage>
+            </Show>
+            <Show when={interactionError()} fallback={<ErrorMessage error=' '></ErrorMessage>}>
+              <ErrorMessage error={interactionError()}></ErrorMessage>
+            </Show>
+          </Stack>
         </Stack>
       </Stack>
     </form>
