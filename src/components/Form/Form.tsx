@@ -20,6 +20,7 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
   });
   const [submitting, setSubmitting] = createSignal(false);
   const [interactionError, setInteractionError] = createSignal('');
+  const [successInteraction, setSuccessInteraction] = createSignal('');
 
   const updateFormField = (fieldName: string) => (event: Event) => {
     const inputElement = event.currentTarget as HTMLInputElement;
@@ -32,6 +33,8 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
   };
 
   const handleFocus = (fieldName: string) => (event: Event) => {
+    setSuccessInteraction('');
+    setInteractionError('');
     const oldFieldName = form[fieldName].value;
     setForm({
       [fieldName]: {
@@ -106,12 +109,10 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
     }
     const contract = props.warp.contract(form.contractId.value);
     try {
-      await contract
+      const { originalTxId } = await contract
         .connect(props.wallet)
-        .writeInteraction(
-          { function: form.function.value, ...JSON.parse('{' + form.input.value + '}') },
-          { strict: true }
-        );
+        .writeInteraction({ function: form.function.value, ...JSON.parse(form.input.value) }, { strict: true });
+      setSuccessInteraction(`https://sonar.warp.cc/#/app/interaction/${originalTxId}?network=mainnet`);
     } catch (e: any) {
       setInteractionError(`${e.message}`);
       return;
@@ -125,6 +126,16 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
 
   const ErrorMessage: Component<{ error: string }> = (props) => (
     <Box sx={{ height: '15px', fontSize: '12px', color: '#FF2E2E' }}>{props.error}</Box>
+  );
+
+  const SuccessMessage: Component<{ message: string }> = (props) => (
+    <Box sx={{ height: '15px', fontSize: '12px', color: '#32CD32' }}>
+      Check out interaction on
+      <a style='color:#32CD32' href={props.message} target='_blank'>
+        {' '}
+        SonAr.
+      </a>
+    </Box>
   );
 
   return (
@@ -168,7 +179,7 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
             value={form.input.value}
             onChange={updateFormField('input')}
             onFocus={handleFocus('input')}
-            helperText='e.g. "id": 666, "user": "asia"'
+            helperText='e.g. {"id": 666, "user": "asia"}'
           />
           <Show when={form.input.error} fallback={<ErrorMessage error=' '></ErrorMessage>}>
             <ErrorMessage error={form.input.error}></ErrorMessage>
@@ -189,6 +200,9 @@ const Form: Component<{ wallet: any; warp: Warp | any }> = (props) => {
             </Show>
             <Show when={interactionError()} fallback={<ErrorMessage error=' '></ErrorMessage>}>
               <ErrorMessage error={interactionError()}></ErrorMessage>
+            </Show>
+            <Show when={successInteraction()} fallback={<Box sx={{ height: '15px', fontSize: '12px' }}> </Box>}>
+              <SuccessMessage message={successInteraction()}></SuccessMessage>
             </Show>
           </Stack>
         </Stack>
